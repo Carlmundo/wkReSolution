@@ -4,7 +4,9 @@
 
 **ReSolution v0.3** and newer add ability to **zoom** (in and out) the game environment using your mouse wheel or keyboard so that you can either expand the view or look more closely at the objects that you see. **Alt+Enter** is also introduced in v0.3, giving the ability to switch from and to borderless fullscreen windowed representation. An additional windowed mode wrapper (wndmode.dll) is needed for this to work: get the windowed bundle.
 
-**ReSolution v0.4** and newer (also known as "ReSolution HD") add **WWP support** (1.01 and 1.00) and finally introduce the automatic screen confining technique on waterrise in enclosed environments (removing the old workaround), also fixing the proper letterboxed dimensions in caverns. A new option called **UseTouchscreenZoom** has also been added, which allows to utilize the touch pinch zoom gesture in order to zoom the game in and out, when Zooming is enabled. The settings file is now **ReSolution.ini**, fitting both games. Various other internal improvements as well.
+**ReSolution v0.4 - v0.4.1** (also known as "ReSolution HD") add **WWP support** (1.01 and 1.00) and finally introduce the automatic screen confining technique on waterrise in enclosed environments (removing the old workaround), also fixing the proper letterboxed dimensions in caverns. A new option called **UseTouchscreenZoom** has also been added, which allows to utilize the touch pinch zoom gesture in order to zoom the game in and out, when Zooming is enabled. The settings file is now **ReSolution.ini**, fitting both games. Various other internal improvements as well.
+
+**ReSolution v0.4.2** (in this fork) and newer now work for Worms 2 in all languages. It also prevents Windows XP users from using the incompatible resize and zoom features as this causes the game to crash.
 
 # Installation
 
@@ -34,8 +36,3 @@ The installation is very simple:
  + Worms 2 - 1.05 (CD/GOG)
  + Worms World Party - 1.00 (Europe)
  + Worms World Party - 1.01 (Europe)
-
-# TODO
-
-- Worms 2: Adjust or provide a way to disable the televisor brackets while watching an instant replay.
-- Chat panel quirks with zooming/resizing
