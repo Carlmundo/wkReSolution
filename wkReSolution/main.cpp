@@ -10,6 +10,19 @@
 
 void LoadConfig()
 {
+	//Determine if Windows XP is running or newer
+	BOOL OSWinXP;
+	OSVERSIONINFOEX InfoOS;
+	ZeroMemory(&InfoOS, sizeof(OSVERSIONINFOEX));
+	InfoOS.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	GetVersionEx((LPOSVERSIONINFO)&InfoOS);
+	if (InfoOS.dwMajorVersion < 6) {
+		OSWinXP = true;
+	}
+	else {
+		OSWinXP = false;
+	}
+
 	GetPathUnderModuleA(HINST_THISCOMPONENT, Config, "ReSolution.ini");
 
 	ScreenCX = (SHORT)GetSystemMetrics(SM_CXSCREEN);
@@ -20,16 +33,29 @@ void LoadConfig()
 	SWidth                = GetPrivateProfileIntA("Resolution", "ScreenWidth", -1, Config);
 	SHeight               = GetPrivateProfileIntA("Resolution", "ScreenHeight", -1, Config);
 
-	AllowResize           = GetPrivateProfileIntA("Resizing", "Enable", -1, Config);
-	AltEnter              = GetPrivateProfileIntA("Resizing", "AltEnter", -1, Config);
+	if (OSWinXP) { //Disable features that are not compatible with Windows XP
+		AllowResize = 0;
+		ProgressiveResize = 0;
+		AltEnter = 0;
 
-	AllowZoom             = GetPrivateProfileIntA("Zooming", "Enable", -1, Config);
-	UseMouseWheel         = GetPrivateProfileIntA("Zooming", "UseMouseWheel", -1, Config);
-	UseKeyboardZoom       = GetPrivateProfileIntA("Zooming", "UseKeyboardZoom", -1, Config);
-	UseTouchscreenZoom    = GetPrivateProfileIntA("Zooming", "UseTouchscreenZoom", -1, Config);
+		AllowZoom = 0;
+		UseMouseWheel = 0;
+		UseKeyboardZoom = 0;
+		UseTouchscreenZoom = 0;
+	}
+	else {
+		AllowResize = GetPrivateProfileIntA("Resizing", "Enable", -1, Config);
+		AltEnter = GetPrivateProfileIntA("Resizing", "AltEnter", -1, Config);
 
-	if (!WWP)
-		ProgressiveResize = GetPrivateProfileIntA("Resizing", "ProgressiveUpdate", -1, Config);
+		AllowZoom = GetPrivateProfileIntA("Zooming", "Enable", -1, Config);
+		UseMouseWheel = GetPrivateProfileIntA("Zooming", "UseMouseWheel", -1, Config);
+		UseKeyboardZoom = GetPrivateProfileIntA("Zooming", "UseKeyboardZoom", -1, Config);
+		UseTouchscreenZoom = GetPrivateProfileIntA("Zooming", "UseTouchscreenZoom", -1, Config);
+
+		if (!WWP) {
+			ProgressiveResize = GetPrivateProfileIntA("Resizing", "ProgressiveUpdate", -1, Config);
+		}
+	}
 
 	if (SWidth > 32767 || SHeight > 32767 || SWidth == 0 || SHeight == 0)
 	{
