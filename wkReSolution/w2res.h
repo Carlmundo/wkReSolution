@@ -6,7 +6,15 @@
 #define WWP (Version < 0)
 #define W2 (Version > 0)
 
-#define W2_15 1
+#define W2_15_EN 1
+#define W2_15_DE 2
+#define W2_15_ES 3
+#define W2_15_ES419 4
+#define W2_15_FR 5
+#define W2_15_IT 6
+#define W2_15_NL 7
+#define W2_15_PTBR 8
+#define W2_15_SV 9
 #define WWP_10 -1
 #define WWP_11 -2
 

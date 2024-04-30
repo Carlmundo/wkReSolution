@@ -7,6 +7,7 @@
 
 bool Cavern;
 char Version;
+DWORD OffsetWnd;
 PEInfo EXE;
 CHAR Config[MAX_PATH], LandFile[MAX_PATH], GameFile[MAX_PATH];
 
@@ -43,8 +44,22 @@ PFVOID RenderGame;
 char CheckVersion()
 {
 	DWORD PETime = EXE.FH->TimeDateStamp;
-	if (PETime >= 0x352118A5 && PETime <= 0x352118FD)
-		return Version = W2_15;
+	if (PETime >= 0x352118A5 && PETime <= 0x352118FD) { //Worms 2 Range
+		switch (PETime) {
+			case 0x352118A5: Version = W2_15_EN; OffsetWnd = 0x8BCE8; break;
+			//Offsets discovered by Carlmundo
+			case 0x352118CF: Version = W2_15_DE; OffsetWnd = 0x8C088; break;
+			case 0x352118E1: Version = W2_15_ES; OffsetWnd = 0x8C328; break;
+			case 0x352118C5: Version = W2_15_ES419; OffsetWnd = 0x8C0D8; break;
+			case 0x352118FD: Version = W2_15_FR; OffsetWnd = 0x8C348; break;
+			case 0x352118D7: Version = W2_15_IT; OffsetWnd = 0x8BEF8; break;
+			case 0x352118EC: Version = W2_15_NL; OffsetWnd = 0x8C0F8; break;
+			case 0x352118BC: Version = W2_15_PTBR; OffsetWnd = 0x8BFC8; break;
+			case 0x352118F5: Version = W2_15_SV; OffsetWnd = 0x8C0D8; break;
+			default: Version = 0;
+		}
+		return Version;
+	}
 	else if (PETime >= 0x3AFFFAAB && PETime <= 0x3AFFFBB1)
 		return Version = WWP_11;
 	else if (PETime >= 0x3A92A062 && PETime <= 0x3A92A27E)
@@ -276,7 +291,7 @@ void PrepareAddresses()
 		//new things discovered by StepS
 
 		GlobalEatLimit = 480;
-		pWormsWnd       = (HWND*)EXE.Offset(0x8BCE8);
+		pWormsWnd       = (HWND*)EXE.Offset(OffsetWnd);
 		pW2DS           = (LPW2DDSTRUCT*)EXE.Offset(0x799C4);
 		RenderGame      = (PFVOID)EXE.Offset(0x34750);
 		W2PosCoord      = (LPLCOORD)EXE.Offset(0x79478);
