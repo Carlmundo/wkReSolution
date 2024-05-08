@@ -258,7 +258,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			{
 				if (wParam == 109) // Num -
 				{
-					do if (DZoom(DTWidth, DTHeight, DDif, 8))
+					do if (DZoom(DTWidth, DTHeight, DDif, 120))
 						HandleBufferResize((SHORT)DTWidth, (SHORT)DTHeight);
 					else break;
 					while (ProgressiveResize && KeyPressed(109));
@@ -266,7 +266,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 				else if (wParam == 107) // Num +
 				{
-					do if (DZoom(DTWidth, DTHeight, DDif, -8))
+					do if (DZoom(DTWidth, DTHeight, DDif, -120))
 						HandleBufferResize((SHORT)DTWidth, (SHORT)DTHeight);
 					else break;
 					while (ProgressiveResize && KeyPressed(107));
