@@ -65,6 +65,22 @@ BOOL HandleBufferResize(DWORD nWidth, DWORD nHeight, bool bRedraw)
 
 	if (DDObj() && nWidth <= 32767 && nHeight <= 32767 && nWidth && nHeight)
 	{
+		if (GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesClose")) // detect cnc-ddraw
+		{
+			// Don't allow to zoom out, it isn't supported by cnc-ddraw (yet)
+			DWORD w, h;
+			GetWndSize(WormsWnd(), w, h);
+
+			if (nWidth > w || nHeight > h)
+			{
+				DTWidth = w;
+				DTHeight = h;
+				DDif = DTHeight / DTWidth;
+
+				return result;
+			}
+		}
+
 		TWidth = nWidth;
 		THeight = nHeight;
 		ModifiedSurfaces = 0;
