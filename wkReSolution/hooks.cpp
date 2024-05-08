@@ -18,8 +18,11 @@ BOOL DZoom(DOUBLE& dCX, DOUBLE& dCY, DOUBLE dDif, SHORT sDelta)
 
 	if ((sDelta > 0 && ddCX <= 32767 && ddCY <= 32767) || (sDelta < 0 && ddCX >= WinMinWidth && ddCY > 0))
 	{
-		dCX = ddCX;
-		dCY = ddCY;
+		//Don't allow zooming less than the initial window size (as this caused graphical glitches)
+		DWORD width, height;
+		GetWndSize(WormsWnd(), width, height);
+		if (ddCX > width){ddCX = width;} else {dCX = ddCX;}
+		if (ddCY > height){ddCY = height;} else {dCY = ddCY;}
 		result = 1;
 	}
 	return result;
