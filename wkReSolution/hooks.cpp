@@ -9,6 +9,8 @@ BOOL ModifiedSurfaces;
 DWORD TWidth, THeight, LastWidth, LastHeight;
 DOUBLE DTWidth, DTHeight, DDif;
 
+BOOL usingCncDdraw = GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesClose") != NULL;
+
 BOOL DZoom(DOUBLE& dCX, DOUBLE& dCY, DOUBLE dDif, SHORT sDelta)
 {
 	BOOL result = 0;
@@ -65,8 +67,6 @@ BOOL CleanupSurfaces()
 BOOL HandleBufferResize(DWORD nWidth, DWORD nHeight, bool bRedraw)
 {
 	BOOL result = 0;
-
-	bool usingCncDdraw = GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesClose") != NULL;
 	if ((usingCncDdraw || DDObj()) && nWidth <= 32767 && nHeight <= 32767 && nWidth && nHeight)
 	{
 		TWidth = nWidth;
