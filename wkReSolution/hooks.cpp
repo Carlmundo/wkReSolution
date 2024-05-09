@@ -66,7 +66,8 @@ BOOL HandleBufferResize(DWORD nWidth, DWORD nHeight, bool bRedraw)
 {
 	BOOL result = 0;
 
-	if (DDObj() && nWidth <= 32767 && nHeight <= 32767 && nWidth && nHeight)
+	bool usingCncDdraw = GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesClose") != NULL;
+	if ((usingCncDdraw || DDObj()) && nWidth <= 32767 && nHeight <= 32767 && nWidth && nHeight)
 	{
 		TWidth = nWidth;
 		THeight = nHeight;
@@ -76,7 +77,7 @@ BOOL HandleBufferResize(DWORD nWidth, DWORD nHeight, bool bRedraw)
 		prefDesc.dwFlags = DDSD_CAPS;
 		prefDesc.ddsCaps.dwCaps = 0x8A00;
 		if (LastWidth != TWidth || LastHeight != THeight)
-		if (SUCCEEDED(DDObj()->EnumSurfaces(DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_NOMATCH, &prefDesc, NULL, EnumResize)))
+			if (usingCncDdraw || SUCCEEDED(DDObj()->EnumSurfaces(DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_NOMATCH, &prefDesc, NULL, EnumResize)))
 		{
 			LastWidth = TWidth;
 			LastHeight = THeight;
