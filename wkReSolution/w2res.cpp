@@ -338,13 +338,13 @@ BOOL UpdateCenteredCursor(DWORD nWidth, DWORD nHeight, bool bMouseForWindow)
 			DWORD width, height;
 			GetWndSize(InputWnd(), width, height);
 
-			GCursPos()->X = width / 2 > ScreenCX / 2 ? ScreenCX / 2 : width / 2;
-			GCursPos()->Y = height / 2 > ScreenCY / 2 ? ScreenCY / 2 : height / 2;
+			GCursPos()->X = UsingCncDdraw ? width / 2 : min(width / 2, ScreenCX / 2);
+			GCursPos()->Y = UsingCncDdraw ? height / 2 : min(height / 2, ScreenCY / 2);
 		}
 		else
 		{
-			GCursPos()->X = nWidth / 2 > ScreenCX / 2 ? ScreenCX / 2 : nWidth / 2;
-			GCursPos()->Y = nHeight / 2 > ScreenCY / 2 ? ScreenCY / 2 : nHeight / 2;
+			GCursPos()->X = UsingCncDdraw ? nWidth / 2 : min(nWidth / 2, ScreenCX / 2);
+			GCursPos()->Y = UsingCncDdraw ? nHeight / 2 : min(nHeight / 2, ScreenCY / 2);
 		}
 	}
 	else

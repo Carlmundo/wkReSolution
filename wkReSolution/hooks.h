@@ -19,5 +19,6 @@ LRESULT CALLBACK CallWndProc(int, WPARAM, LPARAM);
 
 extern DWORD TWidth, THeight, LastWidth, LastHeight;
 extern DOUBLE DTWidth, DTHeight, DDif;
+extern BOOL UsingCncDdraw;
 
 #define RoundUp(num, mod) (num + (mod * ((num % mod) != 0) - (num % mod)))

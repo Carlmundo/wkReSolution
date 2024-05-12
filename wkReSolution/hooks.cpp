@@ -9,7 +9,7 @@ BOOL ModifiedSurfaces;
 DWORD TWidth, THeight, LastWidth, LastHeight;
 DOUBLE DTWidth, DTHeight, DDif;
 
-BOOL usingCncDdraw = GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesClose") != NULL;
+BOOL UsingCncDdraw = GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesClose") != NULL;
 
 BOOL DZoom(DOUBLE& dCX, DOUBLE& dCY, DOUBLE dDif, SHORT sDelta)
 {
@@ -67,7 +67,7 @@ BOOL CleanupSurfaces()
 BOOL HandleBufferResize(DWORD nWidth, DWORD nHeight, bool bRedraw)
 {
 	BOOL result = 0;
-	if ((usingCncDdraw || DDObj()) && nWidth <= 32767 && nHeight <= 32767 && nWidth && nHeight)
+	if ((UsingCncDdraw || DDObj()) && nWidth <= 32767 && nHeight <= 32767 && nWidth && nHeight)
 	{
 		TWidth = nWidth;
 		THeight = nHeight;
@@ -77,7 +77,7 @@ BOOL HandleBufferResize(DWORD nWidth, DWORD nHeight, bool bRedraw)
 		prefDesc.dwFlags = DDSD_CAPS;
 		prefDesc.ddsCaps.dwCaps = 0x8A00;
 		if (LastWidth != TWidth || LastHeight != THeight)
-			if (usingCncDdraw || SUCCEEDED(DDObj()->EnumSurfaces(DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_NOMATCH, &prefDesc, NULL, EnumResize)))
+			if (UsingCncDdraw || SUCCEEDED(DDObj()->EnumSurfaces(DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_NOMATCH, &prefDesc, NULL, EnumResize)))
 		{
 			LastWidth = TWidth;
 			LastHeight = THeight;

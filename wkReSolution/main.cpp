@@ -22,8 +22,6 @@ void LoadConfig()
 	else {
 		OSWinXP = false;
 	}
-	//Determine if cnc-ddraw is being used
-	BOOL usingCncDdraw = GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesClose") != NULL;
 
 	GetPathUnderModuleA(HINST_THISCOMPONENT, Config, "ReSolution.ini");
 
@@ -35,7 +33,7 @@ void LoadConfig()
 	SWidth                = GetPrivateProfileIntA("Resolution", "ScreenWidth", -1, Config);
 	SHeight               = GetPrivateProfileIntA("Resolution", "ScreenHeight", -1, Config);
 
-	if (OSWinXP && !usingCncDdraw) { //Disable features that are not compatible with Windows XP
+	if (OSWinXP && !UsingCncDdraw) { //Disable features that are not compatible with Windows XP
 		AllowResize = 0;
 		ProgressiveResize = 0;
 		AltEnter = 0;
