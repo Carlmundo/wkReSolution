@@ -10,7 +10,7 @@
 
 void LoadConfig()
 {
-	//Determine if Windows XP is running or newer
+	//Determine if the OS is Windows XP
 	BOOL OSWinXP;
 	OSVERSIONINFOEX InfoOS;
 	ZeroMemory(&InfoOS, sizeof(OSVERSIONINFOEX));
@@ -30,8 +30,14 @@ void LoadConfig()
 
 	WinMinWidth = GetSystemMetrics(SM_CXMIN) - GetSystemMetrics(SM_CXSIZEFRAME) * 2;
 
-	SWidth                = GetPrivateProfileIntA("Resolution", "ScreenWidth", -1, Config);
-	SHeight               = GetPrivateProfileIntA("Resolution", "ScreenHeight", -1, Config);
+	if (!WWP && Cavern) {
+		SWidth = GetPrivateProfileIntA("Resolution", "CavernScreenWidth", -1, Config);
+		SHeight = GetPrivateProfileIntA("Resolution", "CavernScreenHeight", -1, Config);
+	}
+	else {
+		SWidth = GetPrivateProfileIntA("Resolution", "ScreenWidth", -1, Config);
+		SHeight = GetPrivateProfileIntA("Resolution", "ScreenHeight", -1, Config);
+	}
 
 	if (OSWinXP && !UsingCncDdraw) { //Disable features that are not compatible with Windows XP
 		AllowResize = 0;
@@ -91,12 +97,12 @@ BOOL APIENTRY DllMain(HMODULE, DWORD dwReason, LPVOID)
 				MB_OK | MB_ICONERROR);
 			return 1;
 		}
-
+		if (!WWP){
+			CavernCheck();
+		}
 		LoadConfig();
 		PrepareAddresses();
-		if (!WWP)
-		{
-			CavernCheck();
+		if (!WWP){
 			PatchW2Mem(SWidth, SHeight);
 		}
 		InstallHooks();
