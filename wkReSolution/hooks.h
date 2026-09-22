@@ -21,4 +21,9 @@ extern DWORD TWidth, THeight, LastWidth, LastHeight;
 extern DOUBLE DTWidth, DTHeight, DDif;
 extern BOOL UsingCncDdraw;
 
+extern UINT KeyZoomIn;
+extern UINT KeyZoomOut;
+extern UINT KeyNumpadPlus;
+extern UINT KeyNumpadMinus;
+
 #define RoundUp(num, mod) (num + (mod * ((num % mod) != 0) - (num % mod)))

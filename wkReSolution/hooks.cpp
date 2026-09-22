@@ -6,6 +6,11 @@
 HHOOK wHook, kHook, mHook;
 BOOL ModifiedSurfaces;
 
+UINT KeyZoomIn = VK_ADD;
+UINT KeyZoomOut = VK_SUBTRACT;
+UINT KeyNumpadPlus = VK_ADD;
+UINT KeyNumpadMinus = VK_SUBTRACT;
+
 DWORD TWidth, THeight, LastWidth, LastHeight;
 DOUBLE DTWidth, DTHeight, DDif;
 
@@ -267,29 +272,40 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+	BOOL consumeZoomKey = FALSE;
+
 	if (nCode == HC_ACTION && InGame())
 	{
-		if (!!!(lParam & INT_MIN)) //key is in a held state
+		if (UseKeyboardZoom)
+		{
+			// Only consume the zoom key when it is also the corresponding
+			// Numpad +/- key.
+			if ((wParam == KeyZoomIn && KeyZoomIn == KeyNumpadPlus) ||
+				(wParam == KeyZoomOut && KeyZoomOut == KeyNumpadMinus))
+			{
+				consumeZoomKey = TRUE;
+			}
+		}
+
+		if (!!!(lParam & INT_MIN)) // key is in a held state
 		{
 			if (UseKeyboardZoom)
 			{
-				if (wParam == 109) // Num -
+				if (wParam == KeyZoomOut)
 				{
 					do if (DZoom(DTWidth, DTHeight, DDif, 120))
 						HandleBufferResize((SHORT)DTWidth, (SHORT)DTHeight);
 					else break;
-					while (ProgressiveResize && KeyPressed(109));
+					while (ProgressiveResize && KeyPressed(KeyZoomOut));
 				}
-
-				else if (wParam == 107) // Num +
+				else if (wParam == KeyZoomIn)
 				{
 					do if (DZoom(DTWidth, DTHeight, DDif, -120))
 						HandleBufferResize((SHORT)DTWidth, (SHORT)DTHeight);
 					else break;
-					while (ProgressiveResize && KeyPressed(107));
+					while (ProgressiveResize && KeyPressed(KeyZoomIn));
 				}
-
-				else if (wParam == VK_END) // End
+				else if (wParam == VK_END)
 				{
 					ReNormalizeBuffers();
 				}
@@ -319,6 +335,10 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 			}
 		}
 	}
+
+	if (consumeZoomKey)
+		return 1;
+
 	return CallNextHookEx(kHook, nCode, wParam, lParam);
 }
 

@@ -25,6 +25,13 @@ void LoadConfig()
 
 	GetPathUnderModuleA(HINST_THISCOMPONENT, Config, "ReSolution.ini");
 
+	CHAR KeysConfig[MAX_PATH];
+	GetPathUnderModuleA(HINST_THISCOMPONENT, KeysConfig, "Keys.ini");
+	KeyZoomIn = GetPrivateProfileIntA("Keys", "ZoomIn", VK_ADD, KeysConfig);
+	KeyZoomOut = GetPrivateProfileIntA("Keys", "ZoomOut", VK_SUBTRACT, KeysConfig);
+	KeyNumpadPlus = GetPrivateProfileIntA("Keys", "NumpadPlus", VK_ADD, KeysConfig);
+	KeyNumpadMinus = GetPrivateProfileIntA("Keys", "NumpadMinus", VK_SUBTRACT, KeysConfig);
+
 	ScreenCX = (SHORT)GetSystemMetrics(SM_CXSCREEN);
 	ScreenCY = (SHORT)GetSystemMetrics(SM_CYSCREEN);
 
