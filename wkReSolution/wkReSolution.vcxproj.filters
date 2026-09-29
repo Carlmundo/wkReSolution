@@ -18,6 +18,9 @@
     <ClCompile Include="hooks.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="split_zoom.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
     <ClCompile Include="w2res.cpp">
       <Filter>Code</Filter>
     </ClCompile>
@@ -35,6 +38,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hooks.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="split_zoom.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="zoom_math.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="w2res.h">

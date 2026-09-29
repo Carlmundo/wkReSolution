@@ -1,9 +1,11 @@
 
 #include <windows.h>
 #include <stdio.h>
+#include <algorithm>
 #include "hooks.h"
 #include "w2res.h"
 #include "misc_tools.h"
+#include "split_zoom.h"
 
 bool Cavern;
 char Version;
@@ -142,6 +144,7 @@ BOOL InGame()
 
 LPDIRECTDRAW DDObj()
 {
+	if (SplitZoom::Enabled()) return SplitZoom::DrawingInterface();
 	if (WWP)
 		return *(LPDIRECTDRAW*)wwpDD;
 	else
@@ -306,8 +309,14 @@ void PatchW2Mem(DWORD nWidth, DWORD nHeight, bool bMouseForWindow)
 
 	PatchMemDword(LandWaterCriticalZone, GlobalEatLimit << 16); //in case other reso exepatches broke this value
 	PatchMemDword(CavernWaterEatLimit  , GlobalEatLimit << 16);
-	PatchMemDword(ActualWidth          , nWidth);
-	PatchMemDword(ActualHeight         , nHeight);
+	// Keep the final presentation buffer fixed; only the world canvas zooms.
+	PatchMemDword(ActualWidth          , SplitZoom::Enabled() ? SWidth : nWidth);
+	PatchMemDword(ActualHeight         , SplitZoom::Enabled() ? SHeight : nHeight);
+	// cnc-ddraw's Worms 2 virtual-resolution hack inspects these fields from
+	// its render thread. Independent zoom composites into the physical buffer
+	// itself, so prevent a second whole-screen upscale after every resize.
+	if (SplitZoom::Enabled())
+		SplitZoom::SyncPresentationSize(SWidth, SHeight);
 	PatchMemDword(RenderFromLeft       , TargetWidth << 16);
 	PatchMemDword(RenderFromTop        , TargetHeight << 16);
 	PatchMemDword(HorizontalSidesBox   , TargetWidth);
@@ -338,13 +347,13 @@ BOOL UpdateCenteredCursor(DWORD nWidth, DWORD nHeight, bool bMouseForWindow)
 			DWORD width, height;
 			GetWndSize(InputWnd(), width, height);
 
-			GCursPos()->X = UsingCncDdraw ? width / 2 : min(width / 2, ScreenCX / 2);
-			GCursPos()->Y = UsingCncDdraw ? height / 2 : min(height / 2, ScreenCY / 2);
+			GCursPos()->X = UsingCncDdraw ? width / 2 : (std::min)(width / 2, ScreenCX / 2);
+			GCursPos()->Y = UsingCncDdraw ? height / 2 : (std::min)(height / 2, ScreenCY / 2);
 		}
 		else
 		{
-			GCursPos()->X = UsingCncDdraw ? nWidth / 2 : min(nWidth / 2, ScreenCX / 2);
-			GCursPos()->Y = UsingCncDdraw ? nHeight / 2 : min(nHeight / 2, ScreenCY / 2);
+			GCursPos()->X = UsingCncDdraw ? nWidth / 2 : (std::min)(nWidth / 2, ScreenCX / 2);
+			GCursPos()->Y = UsingCncDdraw ? nHeight / 2 : (std::min)(nHeight / 2, ScreenCY / 2);
 		}
 	}
 	else

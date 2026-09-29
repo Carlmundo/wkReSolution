@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "hooks.h"
 #include "w2res.h"
+#include "split_zoom.h"
 
 HHOOK wHook, kHook, mHook;
 BOOL ModifiedSurfaces;
@@ -19,6 +20,7 @@ BOOL UsingCncDdraw = GetProcAddress(GetModuleHandleA("ddraw.dll"), "GameHandlesC
 BOOL DZoom(DOUBLE& dCX, DOUBLE& dCY, DOUBLE dDif, SHORT sDelta)
 {
 	BOOL result = 0;
+	const DOUBLE oldCX = dCX, oldCY = dCY;
 
 	DOUBLE ddCX = dCX + sDelta;
 	DOUBLE ddCY = dCY + sDelta * dDif;
@@ -26,8 +28,9 @@ BOOL DZoom(DOUBLE& dCX, DOUBLE& dCY, DOUBLE dDif, SHORT sDelta)
 	if ((sDelta > 0 && ddCX <= 32767 && ddCY <= 32767) || (sDelta < 0 && ddCX >= WinMinWidth && ddCY > 0))
 	{
 		//Don't allow zooming less than the initial window size (as this caused graphical glitches)
-		DWORD width, height;
-		GetWndSize(WormsWnd(), width, height);
+		DWORD width = 0, height = 0;
+		if (!GetWndSize(WormsWnd(), width, height) || !width || !height)
+			return FALSE;
 		if (ddCX > width) {
 			dCX = width;
 		}
@@ -46,7 +49,7 @@ BOOL DZoom(DOUBLE& dCX, DOUBLE& dCY, DOUBLE dDif, SHORT sDelta)
 		else {
 			dCY = ddCY;
 		}
-		result = 1;
+		result = dCX != oldCX || dCY != oldCY;
 	}
 	return result;
 }
@@ -55,8 +58,9 @@ BOOL ReNormalizeBuffers()
 {
 	BOOL result = 0;
 
-	DWORD width, height;
-	GetWndSize(WormsWnd(), width, height);
+	DWORD width = 0, height = 0;
+	if (!GetWndSize(WormsWnd(), width, height) || !width || !height)
+		return FALSE;
 
 	if (HandleBufferResize(width, height))
 	{
@@ -71,6 +75,8 @@ BOOL ReNormalizeBuffers()
 
 BOOL CleanupSurfaces()
 {
+	// Split zoom owns its world surface and clears it at the next frame.
+	if (SplitZoom::Enabled()) return TRUE;
 	BOOL result = 0;
 
 	if (DDObj())
@@ -87,6 +93,8 @@ BOOL CleanupSurfaces()
 
 BOOL HandleBufferResize(DWORD nWidth, DWORD nHeight, bool bRedraw)
 {
+	if (SplitZoom::Enabled())
+		return SplitZoom::ResizeWorld(nWidth, nHeight, bRedraw);
 	BOOL result = 0;
 	if ((UsingCncDdraw || DDObj()) && nWidth <= 32767 && nHeight <= 32767 && nWidth && nHeight)
 	{
@@ -213,6 +221,7 @@ HRESULT WINAPI EnumCleanup(LPDIRECTDRAWSURFACE pSurface, LPDDSURFACEDESC lpSurfa
 			}
 		}
 	}
+	return DDENUMRET_OK;
 }
 
 BOOL WheelZoom(SHORT sDelta)
@@ -223,6 +232,32 @@ BOOL WheelZoom(SHORT sDelta)
 			return HandleBufferResize((DWORD)DTWidth, (DWORD)DTHeight);
 	}
 	return 0;
+}
+
+// With independent zoom active, Ctrl + wheel adjusts the UI scale. Keep
+// partial wheel deltas so high-resolution wheels still move in 10% steps
+// once a complete WHEEL_DELTA has accumulated.
+int uiWheelRemainder;
+
+void HandleMouseWheel(SHORT sDelta)
+{
+	if (sDelta == 0)
+		return;
+
+	if (UseMouseWheel && KeyPressed(VK_CONTROL) && SplitZoom::Enabled())
+	{
+		uiWheelRemainder += sDelta;
+		const int steps = uiWheelRemainder / WHEEL_DELTA;
+		if (steps != 0)
+		{
+			uiWheelRemainder -= steps * WHEEL_DELTA;
+			SplitZoom::ChangeUI(steps);
+		}
+		return;
+	}
+
+	uiWheelRemainder = 0;
+	WheelZoom(sDelta);
 }
 
 LRESULT CALLBACK CallWndProc(int nCode, WPARAM wParam, LPARAM lParam)
@@ -245,7 +280,10 @@ LRESULT CALLBACK CallWndProc(int nCode, WPARAM wParam, LPARAM lParam)
 		{
 			if (!!(pwp->wParam & MK_CONTROL))
 			{
-				WheelZoom(GET_WHEEL_DELTA_WPARAM(pwp->wParam));
+				// UseMouseWheel routes this same Ctrl+wheel event through
+				// MouseProc. Avoid applying a second world zoom here.
+				if (!(UseMouseWheel && SplitZoom::Enabled()))
+					WheelZoom(GET_WHEEL_DELTA_WPARAM(pwp->wParam));
 			}
 		}
 	}
@@ -260,7 +298,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 		if (wParam == WM_MOUSEWHEEL)
 		{
 			LPMOUSEHOOKSTRUCTEX lpWheelInf = (LPMOUSEHOOKSTRUCTEX)lParam;
-			WheelZoom(GET_WHEEL_DELTA_WPARAM(lpWheelInf->mouseData));
+			HandleMouseWheel(GET_WHEEL_DELTA_WPARAM(lpWheelInf->mouseData));
 		}
 		else if (wParam == WM_MBUTTONDOWN)
 		{
@@ -276,6 +314,18 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 	if (nCode == HC_ACTION && InGame())
 	{
+		// Use the existing bindings, with Ctrl selecting the independent UI.
+		// Windows key repeat supplies the steps; don't spin to the scale limit.
+		if (UseKeyboardZoom && SplitZoom::Enabled() && KeyPressed(VK_CONTROL) &&
+			(wParam == KeyZoomIn || wParam == KeyZoomOut || wParam == VK_END))
+		{
+			if (!(lParam & INT_MIN))
+			{
+				if (wParam == VK_END) SplitZoom::ResetUI();
+				else SplitZoom::ChangeUI(wParam == KeyZoomIn ? 1 : -1);
+			}
+			return 1;
+		}
 		if (UseKeyboardZoom)
 		{
 			// Only consume the zoom key when it is also the corresponding

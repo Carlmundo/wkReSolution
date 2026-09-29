@@ -42,6 +42,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>D:\Games\Worms 2</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -80,6 +83,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="hooks.cpp" />
+    <ClCompile Include="split_zoom.cpp" />
     <ClCompile Include="misc_tools.cpp" />
     <ClCompile Include="w2res.cpp" />
     <ClCompile Include="main.cpp" />
@@ -89,6 +93,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hooks.h" />
+    <ClInclude Include="split_zoom.h" />
+    <ClInclude Include="zoom_math.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="misc_tools.h" />
     <ClInclude Include="w2res.h" />

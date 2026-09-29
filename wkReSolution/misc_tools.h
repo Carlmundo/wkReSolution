@@ -17,8 +17,12 @@ BOOL WritePrivateProfileIntA(LPCSTR lpAppName, LPCSTR lpKeyName, int nInteger, L
 LPSTR GetPathUnderModuleA(HMODULE hModule, LPSTR OutBuf, LPCSTR FileName);
 
 BOOL __stdcall InsertJump(PVOID pDest, DWORD dwPatchSize, PVOID pCallee, DWORD dwJumpType = IJ_JUMP);
+inline BOOL InsertJump(PVOID pDest, DWORD dwPatchSize, void (*pCallee)(), DWORD dwJumpType = IJ_JUMP)
+{
+	return InsertJump(pDest, dwPatchSize, reinterpret_cast<PVOID>(pCallee), dwJumpType);
+}
 
-BOOL __stdcall PatchMemData(ULONG, PVOID, ULONG);
+BOOL __stdcall PatchMemData(ULONG, ULONG, PVOID, ULONG);
 BOOL __stdcall PatchMemQword(ULONG, QWORD);
 BOOL __stdcall PatchMemDword(ULONG, DWORD);
 BOOL __stdcall PatchMemWord(ULONG, WORD);

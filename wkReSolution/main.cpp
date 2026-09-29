@@ -7,6 +7,7 @@
 #include "hooks.h"
 #include "w2res.h"
 #include "misc_tools.h"
+#include "split_zoom.h"
 
 void LoadConfig()
 {
@@ -92,7 +93,7 @@ void LoadConfig()
 	InitializeScreenSize();
 }
 
-BOOL APIENTRY DllMain(HMODULE, DWORD dwReason, LPVOID)
+BOOL APIENTRY DllMain(HMODULE, DWORD dwReason, LPVOID lpReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
@@ -109,6 +110,7 @@ BOOL APIENTRY DllMain(HMODULE, DWORD dwReason, LPVOID)
 		}
 		LoadConfig();
 		PrepareAddresses();
+		SplitZoom::Install();
 		if (!WWP){
 			PatchW2Mem(SWidth, SHeight);
 		}
@@ -118,8 +120,8 @@ BOOL APIENTRY DllMain(HMODULE, DWORD dwReason, LPVOID)
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{
 		UninstallHooks();
+		SplitZoom::Remove(lpReserved != NULL);
 	}
 
 	return 1;
 }
-
