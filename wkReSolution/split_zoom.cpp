@@ -8,8 +8,6 @@
 #include <intrin.h>
 #include <cstring>
 #include <cstdlib>
-#include <cstdio>
-#include <cstdarg>
 
 namespace SplitZoom {
 namespace {
@@ -50,102 +48,8 @@ ZoomMath::MouseRemainder mouseRemainder;
 int mouseContext;
 DWORD pendingWidth, pendingHeight;
 int pendingUIStep;
-unsigned suppressedRedraws;
-unsigned suppressedFlips;
 void** sceneStorage;
 unsigned sceneCapacity;
-
-// Sample UI AND world zoom changes, including the redraws caused by resizing.
-// Log only render metadata, never chat text or other user data.
-struct ZoomDiagnostic {
-    volatile bool recording, queued;
-    unsigned sample, remaining;
-    int lastStep;
-    DWORD lastWidth, lastHeight;
-    unsigned scenes, fallback, world, hud, types[11];
-    unsigned bitmaps, sprites, blits, scaled, wrongTarget, wrongFormat, wrongFlags;
-    unsigned surfaceSprites, surfaceScaled, details;
-    int frameStatus;
-} diagnostic = {};
-
-void DiagnosticLine(const char* format, ...) {
-    char path[MAX_PATH] = {}, line[1024];
-    //std::strncpy(path, Config, sizeof(path) - 1);
-    char* filename = std::strrchr(path, '\\');
-    if (!filename) filename = std::strrchr(path, '/');
-    filename = filename ? filename + 1 : path;
-    const char logName[] = "wkReSolution-zoom.log";
-    if (sizeof(logName) > sizeof(path) - (filename - path)) return;
-    std::memcpy(filename, logName, sizeof(logName));
-    va_list args;
-    va_start(args, format);
-    const int length = std::vsnprintf(line, sizeof(line) - 3, format, args);
-    va_end(args);
-    if (length < 0) return;
-    unsigned size = static_cast<unsigned>(length);
-    if (size > sizeof(line) - 4) size = sizeof(line) - 4;
-    line[size++] = '\r'; line[size++] = '\n';
-    HANDLE file = CreateFileA(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                              NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE) {
-        const DWORD folderLength = GetTempPathA(sizeof(path), path);
-        if (folderLength && folderLength + sizeof(logName) <= sizeof(path)) {
-            std::memcpy(path + folderLength, logName, sizeof(logName));
-            file = CreateFileA(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                               NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-        }
-    }
-    if (file == INVALID_HANDLE_VALUE) {
-        OutputDebugStringA("wkReSolution: could not open wkReSolution-zoom.log\n");
-        return;
-    }
-    DWORD written;
-    WriteFile(file, line, size, &written, NULL);
-    CloseHandle(file);
-}
-
-void DiagnosticHooks();
-
-void BeginDiagnostic() {
-    if (diagnostic.lastStep != uiStep || diagnostic.lastWidth != TWidth ||
-        diagnostic.lastHeight != THeight || !diagnostic.sample) {
-        diagnostic.lastStep = uiStep;
-        diagnostic.lastWidth = TWidth; diagnostic.lastHeight = THeight;
-        diagnostic.remaining = 2;
-    }
-    const unsigned sample = diagnostic.sample, remaining = diagnostic.remaining;
-    const int step = diagnostic.lastStep;
-    const DWORD width = diagnostic.lastWidth, height = diagnostic.lastHeight;
-    diagnostic = ZoomDiagnostic();
-    diagnostic.sample = sample; diagnostic.remaining = remaining; diagnostic.lastStep = step;
-    diagnostic.lastWidth = width; diagnostic.lastHeight = height;
-    if (remaining && sample < 128) {
-        diagnostic.recording = true; diagnostic.remaining--; diagnostic.sample++;
-        DiagnosticLine("FRAME %u begin: ui=%d%% world=%lux%lu display=%p global=%p",
-                       diagnostic.sample, uiStep * 10, TWidth, THeight, frameDisplay, frameGlobal);
-    }
-}
-
-void EndDiagnostic() {
-    if (!diagnostic.recording) return;
-    DiagnosticLine("frame_status=%d screen=%dx%d world_scale=%.4f,%.4f ui_scale=%.4f,%.4f",
-                   diagnostic.frameStatus, surfaceWidth, surfaceHeight, worldX, worldY, uiX, uiY);
-    DiagnosticLine("scene_calls=%u fallback=%u world_commands=%u hud_commands=%u types[0..10]=%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
-                   diagnostic.scenes, diagnostic.fallback, diagnostic.world, diagnostic.hud,
-                   diagnostic.types[0], diagnostic.types[1], diagnostic.types[2], diagnostic.types[3],
-                   diagnostic.types[4], diagnostic.types[5], diagnostic.types[6], diagnostic.types[7],
-                   diagnostic.types[8], diagnostic.types[9], diagnostic.types[10]);
-    DiagnosticLine("queued_bitmap_requests=%u queued_sprite_requests=%u raster_blits=%u scaled=%u wrong_target=%u wrong_format=%u wrong_flags=%u surface_sprites=%u surface_scaled=%u",
-                   diagnostic.bitmaps, diagnostic.sprites, diagnostic.blits, diagnostic.scaled,
-                   diagnostic.wrongTarget, diagnostic.wrongFormat, diagnostic.wrongFlags,
-                   diagnostic.surfaceSprites, diagnostic.surfaceScaled);
-    DiagnosticHooks();
-    DiagnosticLine("redraws_suppressed=%u flips_suppressed=%u", suppressedRedraws, suppressedFlips);
-    DiagnosticLine("FRAME %u end", diagnostic.sample);
-    diagnostic.recording = false;
-}
-
-void Trace(const char* message) { OutputDebugStringA(message); }
 
 struct BitmapImage {
     void* vtable;
@@ -318,20 +222,12 @@ public:
 };
 
 int DrawUISprite(void* display, int x, int y, int id, int frame) {
-    if (diagnostic.recording && diagnostic.queued) ++diagnostic.sprites;
     RasterScope scope(display);
     return Native<SpriteMethod>(0xCA60)(display, x, y, id, frame);
 }
 
 int DrawUIBitmap(void* display, int x, int y, void* bitmap,
                  int left, int top, int right, int bottom, int flags) {
-    if (diagnostic.recording && diagnostic.queued) {
-        ++diagnostic.bitmaps;
-        if (diagnostic.details++ < 4)
-            DiagnosticLine("queued_bitmap: xy=%d,%d source=%dx%d bits=%d flags=%08x display=%p",
-                           x / 65536, y / 65536, right - left, bottom - top,
-                           static_cast<BitmapImage*>(bitmap)->bitDepth, flags, display);
-    }
     RasterScope scope(display);
     return Native<BitmapMethod>(0xCF50)(display, x, y, bitmap, left, top, right, bottom, flags);
 }
@@ -426,7 +322,6 @@ int __fastcall BitmapHook(void* display, void*, int x, int y, void* bitmap,
 
 void __fastcall SurfaceSpriteHook(void* display, void*, int x, int y, int w, int h,
                                  LPDIRECTDRAWSURFACE source, int sx, int sy, int flags) {
-    if (diagnostic.recording && diagnostic.queued) ++diagnostic.surfaceSprites;
     if (!uiRaster || display != frameDisplay) {
         Native<SurfaceSpriteMethod>(0xC770)(display, x, y, w, h, source, sx, sy, flags);
         return;
@@ -439,7 +334,6 @@ void __fastcall SurfaceSpriteHook(void* display, void*, int x, int y, int w, int
     if (FAILED(source->Lock(NULL, &src, DDLOCK_WAIT | DDLOCK_READONLY, NULL))) return;
     if (FAILED(back->Lock(NULL, &dst, DDLOCK_WAIT, NULL))) { source->Unlock(NULL); return; }
     if (src.ddpfPixelFormat.dwRGBBitCount == 8 && dst.ddpfPixelFormat.dwRGBBitCount == 8) {
-        if (diagnostic.recording && diagnostic.queued) ++diagnostic.surfaceScaled;
         ZoomMath::Image target = Image(dst);
         std::memcpy(&target.clip, static_cast<BYTE*>(display) + 0x10, sizeof(target.clip));
         ZoomMath::Blit(target, Image(src), x, y, w, h, sx, sy, uiX, uiY,
@@ -453,19 +347,8 @@ int __fastcall BlitHook(void* dest, void*, int x, int y, int w, int h, void* sou
                        int sx, int sy, void* remap, int flags) {
     BitmapImage* a = static_cast<BitmapImage*>(dest);
     BitmapImage* b = static_cast<BitmapImage*>(source);
-    if (diagnostic.recording && diagnostic.queued) {
-        ++diagnostic.blits;
-        if (dest != Field<void*>(frameDisplay, 0x448)) ++diagnostic.wrongTarget;
-        if (a->bitDepth != 8 || b->bitDepth != 8) ++diagnostic.wrongFormat;
-        if ((flags & 0xFFFF) > 3) ++diagnostic.wrongFlags;
-        if (diagnostic.blits <= 3)
-            DiagnosticLine("queued_blit: raster=%d target=%p expected=%p bits=%d,%d source=%dx%d output=%.2fx%.2f flags=%08x",
-                           static_cast<int>(uiRaster), dest, Field<void*>(frameDisplay, 0x448),
-                           a->bitDepth, b->bitDepth, w, h, w * uiX, h * uiY, flags);
-    }
     if (uiRaster && dest == Field<void*>(frameDisplay, 0x448) &&
         a->bitDepth == 8 && b->bitDepth == 8 && (flags & 0xFFFF) <= 3) {
-        if (diagnostic.recording && diagnostic.queued) ++diagnostic.scaled;
         return ZoomMath::Blit(Image(a), Image(b), x, y, w, h, sx, sy, uiX, uiY,
                              Field<int>(frameDisplay, 0x20), Field<int>(frameDisplay, 0x24),
                              flags, static_cast<BYTE*>(remap)) ? 1 : 0;
@@ -521,41 +404,22 @@ bool ReserveScene(unsigned count) {
 
 void __fastcall SceneHook(void* scene, void*, void* display, void* camera) {
     const SceneMethod render = Native<SceneMethod>(0xF330);
-    if (diagnostic.recording) ++diagnostic.scenes;
     if (!frameActive || display != frameDisplay) {
-        if (diagnostic.recording) {
-            diagnostic.fallback |= 1;
-            DiagnosticLine("scene_bypass: active=%d display=%p expected=%p", static_cast<int>(frameActive), display, frameDisplay);
-        }
         render(scene, display, camera); return;
     }
     DWORD countOffset = 0, callsOffset = 0;
     if (!SceneQueueLayout(countOffset, callsOffset)) {
-        if (diagnostic.recording) {
-            diagnostic.fallback |= 8;
-            DiagnosticLine("scene_bypass: unrecognised live queue instructions");
-        }
         render(scene, display, camera); return;
     }
     volatile int& count = Field<int>(scene, countOffset);
     void** calls = &Field<void*>(scene, callsOffset);
-    if (diagnostic.recording)
-        DiagnosticLine("scene_layout: scene=%p count_offset=0x%lX calls_offset=0x%lX count=%d",
-                       scene, countOffset, callsOffset, static_cast<int>(count));
     // Sanity-check corrupt metadata, without imposing the original capacity
     // on a game whose renderer has been patched to support a larger arena.
     if (count < 0 || count > 65536) {
-        if (diagnostic.recording) {
-            diagnostic.fallback |= 2; DiagnosticLine("scene_bypass: count=%d", static_cast<int>(count));
-        }
         render(scene, display, camera); return;
     }
     const int savedCount = count;
     if (!ReserveScene(savedCount)) {
-        if (diagnostic.recording) {
-            diagnostic.fallback |= 16;
-            DiagnosticLine("scene_bypass: queue scratch allocation failed");
-        }
         render(scene, display, camera); return;
     }
     void** saved = sceneStorage;
@@ -564,7 +428,6 @@ void __fastcall SceneHook(void* scene, void*, void* display, void* camera) {
     int nWorld = 0, nUI = 0;
     for (int i = 0; i < savedCount; ++i) {
         const int type = Field<int>(saved[i], 0);
-        if (diagnostic.recording) ++diagnostic.types[type >= 0 && type < 10 ? type : 10];
         // In the verified executable, bitmap2d/sprite2d are HUD commands.
         // Worms, nameplates and aiming graphics are bitmap3d/sprite3d. Route
         // by the native command type, independently of callback bookkeeping.
@@ -575,7 +438,6 @@ void __fastcall SceneHook(void* scene, void*, void* display, void* camera) {
     LPDIRECTDRAWSURFACE realBack = back;
     const int chatRows = Field<int>(display, 0x14);
     if (!UnlockDisplay(display)) {
-        if (diagnostic.recording) diagnostic.fallback |= 4;
         std::memcpy(calls, saved, savedCount * sizeof(void*));
         render(scene, display, camera); return;
     }
@@ -586,12 +448,10 @@ void __fastcall SceneHook(void* scene, void*, void* display, void* camera) {
     UnlockDisplay(display);
     back = realBack;
     _ReadWriteBarrier();
-    if (!Composite(realBack, chatRows)) Trace("wkReSolution: world composite failed\n");
-    if (diagnostic.recording) { diagnostic.world += nWorld; diagnostic.hud += nUI; }
+    Composite(realBack, chatRows);
     // Render the native scene exactly once. Submit only the 2D HUD commands
     // here; replaying GameScene::render can replay world primitives as well.
     std::qsort(ui, nUI, sizeof(void*), Native<DrawCompare>(0x10100));
-    diagnostic.queued = true;
     for (int i = nUI - 1; i >= 0; --i) {
         void* command = ui[i];
         if (Field<int>(command, 0) == 1)
@@ -602,7 +462,6 @@ void __fastcall SceneHook(void* scene, void*, void* display, void* camera) {
             DrawUISprite(display, Field<int>(command, 8), Field<int>(command, 12),
                          Field<int>(command, 16), Field<int>(command, 20));
     }
-    diagnostic.queued = false;
     std::memcpy(calls, saved, savedCount * sizeof(void*)); count = savedCount;
     _ReadWriteBarrier();
 }
@@ -642,21 +501,18 @@ int __fastcall FrameHook(void* game, void*) {
     if (*Native<int*>(0x79460)) return render(game);
     frameGlobal = Field<void*>(game, 0x5C9C);
     frameDisplay = Field<void*>(frameGlobal, 4);
-    BeginDiagnostic();
     LPDIRECTDRAWSURFACE back = Field<LPDIRECTDRAWSURFACE>(frameDisplay, 0x38);
     LPDIRECTDRAW dd = Field<LPDIRECTDRAW>(frameDisplay, 0x30);
     DDSURFACEDESC d = {}; d.dwSize = sizeof(d);
     if (!back || !dd || !TWidth || !THeight || FAILED(back->GetSurfaceDesc(&d)) ||
         d.ddpfPixelFormat.dwRGBBitCount != 8 || !d.dwWidth || !d.dwHeight)
     {
-        diagnostic.frameStatus = 1;
         // A focus transition can invalidate the wrapper's primary/back
         // surfaces between RenderGame's lost-surface check and this hook.
         // Do not render natively here: that would display one combined-scale
         // frame. Let the next RenderGame call perform the normal recovery.
         RestoreDisplaySurfaces(frameDisplay);
         skipPresent = true;
-        EndDiagnostic();
         return 0;
     }
     if (!UnlockDisplay(frameDisplay) || !EnsureWorld(dd, d) ||
@@ -667,7 +523,6 @@ int __fastcall FrameHook(void* game, void*) {
         // after Alt+Tab when the wrapper is restoring its surfaces.
         RestoreDisplaySurfaces(frameDisplay);
         skipPresent = true;
-        diagnostic.frameStatus = 2; EndDiagnostic();
         return 0;
     }
     surfaceWidth = d.dwWidth; surfaceHeight = d.dwHeight;
@@ -694,7 +549,6 @@ int __fastcall FrameHook(void* game, void*) {
     // must cover the completed physical buffer, even if an earlier resize
     // left virtual world dimensions in DD_Display.
     Field<int>(frameDisplay, 8) = surfaceWidth; Field<int>(frameDisplay, 12) = surfaceHeight;
-    EndDiagnostic();
     return result;
 }
 
@@ -702,7 +556,7 @@ int __fastcall PresentHook(void* game, void*) {
     // Guard DD_Game::render as a whole, including preparation and the final
     // flip. Returning early from FrameHook alone still lets its caller flip
     // a partially rendered frame using the temporary world dimensions.
-    if (renderBusy || frameActive) { ++suppressedRedraws; return 0; }
+    if (renderBusy || frameActive) return 0;
     skipPresent = false;
     renderBusy = true;
     _ReadWriteBarrier();
@@ -715,7 +569,6 @@ int __fastcall PresentHook(void* game, void*) {
 void __fastcall FlipHook(void* display, void*) {
     if (skipPresent && display == frameDisplay) {
         skipPresent = false;
-        ++suppressedFlips;
         return;
     }
     Native<FlipMethod>(0xC580)(display);
@@ -760,24 +613,6 @@ Patch patches[] = {
 #undef CALL
 #undef SLOT
 
-void DiagnosticHooks() {
-    unsigned matches = 0;
-    for (const Patch& patch : patches) {
-        const BYTE* code = Native<const BYTE*>(patch.rva);
-        DWORD target;
-        std::memcpy(&target, code + (patch.call ? 1 : 0), sizeof(target));
-        if (patch.call) target += base + patch.rva + 5;
-        const DWORD expected = reinterpret_cast<DWORD>(patch.hook);
-        if ((!patch.call || code[0] == 0xE8) && target == expected) ++matches;
-        else DiagnosticLine("hook_mismatch: rva=%08lx opcode=%02x target=%08lx expected=%08lx",
-                            patch.rva, code[0], target, expected);
-    }
-    DiagnosticLine("hooks_matching=%u/%u scene_entry=%02x %02x %02x %02x %02x",
-                   matches, static_cast<unsigned>(sizeof(patches) / sizeof(patches[0])),
-                   *Native<BYTE*>(0xF330), *Native<BYTE*>(0xF331), *Native<BYTE*>(0xF332),
-                   *Native<BYTE*>(0xF333), *Native<BYTE*>(0xF334));
-}
-
 bool Write(void* dest, const void* source, unsigned size) {
     DWORD previous;
     if (!VirtualProtect(dest, size, PAGE_EXECUTE_READWRITE, &previous)) return false;
@@ -808,7 +643,6 @@ bool Install() {
         if (p.call) expected[0] = 0xE8;
         std::memcpy(expected + (p.call ? 1 : 0), &target, 4);
         if (std::memcmp(Native<void*>(p.rva), expected, p.Size())) {
-            Trace("wkReSolution: separate UI disabled; rendering hook signature mismatch\n");
             return false;
         }
         std::memcpy(p.saved, expected, p.Size());
@@ -820,14 +654,11 @@ bool Install() {
     for (Patch& p : patches) {
         if (!Write(Native<void*>(p.rva), p.replacement, p.Size())) {
             while (done) { Patch& undo = patches[--done]; Write(Native<void*>(undo.rva), undo.saved, undo.Size()); }
-            Trace("wkReSolution: separate UI hooks could not be installed\n");
             return false;
         }
         ++done;
     }
     installed = true;
-    DiagnosticLine("--- wkReSolution independent zoom v6: installed, base=%08lx ---", base);
-    Trace("wkReSolution: independent world/UI zoom enabled\n");
     return true;
 }
 
