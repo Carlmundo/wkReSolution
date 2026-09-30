@@ -302,7 +302,10 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 		}
 		else if (wParam == WM_MBUTTONDOWN)
 		{
-			ReNormalizeBuffers();
+			if (SplitZoom::Enabled() && KeyPressed(VK_CONTROL))
+				SplitZoom::ResetUI();
+			else
+				ReNormalizeBuffers();
 		}
 	}
 	return CallNextHookEx(mHook, nCode, wParam, lParam);
