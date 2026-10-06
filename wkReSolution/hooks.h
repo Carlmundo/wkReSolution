@@ -25,5 +25,6 @@ extern UINT KeyZoomIn;
 extern UINT KeyZoomOut;
 extern UINT KeyNumpadPlus;
 extern UINT KeyNumpadMinus;
+extern UINT KeyZoomReset;
 
 #define RoundUp(num, mod) (num + (mod * ((num % mod) != 0) - (num % mod)))

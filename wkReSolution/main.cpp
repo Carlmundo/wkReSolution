@@ -32,6 +32,7 @@ void LoadConfig()
 	KeyZoomOut = GetPrivateProfileIntA("Keys", "ZoomOut", VK_SUBTRACT, KeysConfig);
 	KeyNumpadPlus = GetPrivateProfileIntA("Keys", "NumpadPlus", VK_ADD, KeysConfig);
 	KeyNumpadMinus = GetPrivateProfileIntA("Keys", "NumpadMinus", VK_SUBTRACT, KeysConfig);
+	KeyZoomReset = GetPrivateProfileIntA("Keys", "ZoomReset", VK_END, KeysConfig);
 
 	ScreenCX = (SHORT)GetSystemMetrics(SM_CXSCREEN);
 	ScreenCY = (SHORT)GetSystemMetrics(SM_CYSCREEN);

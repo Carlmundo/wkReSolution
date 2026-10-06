@@ -11,6 +11,7 @@ UINT KeyZoomIn = VK_ADD;
 UINT KeyZoomOut = VK_SUBTRACT;
 UINT KeyNumpadPlus = VK_ADD;
 UINT KeyNumpadMinus = VK_SUBTRACT;
+UINT KeyZoomReset = VK_END;
 
 DWORD TWidth, THeight, LastWidth, LastHeight;
 DOUBLE DTWidth, DTHeight, DDif;
@@ -320,11 +321,11 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 		// Use the existing bindings, with Ctrl selecting the independent UI.
 		// Windows key repeat supplies the steps; don't spin to the scale limit.
 		if (UseKeyboardZoom && SplitZoom::Enabled() && KeyPressed(VK_CONTROL) &&
-			(wParam == KeyZoomIn || wParam == KeyZoomOut || wParam == VK_END))
+			(wParam == KeyZoomIn || wParam == KeyZoomOut || wParam == KeyZoomReset))
 		{
 			if (!(lParam & INT_MIN))
 			{
-				if (wParam == VK_END) SplitZoom::ResetUI();
+				if (wParam == KeyZoomReset) SplitZoom::ResetUI();
 				else SplitZoom::ChangeUI(wParam == KeyZoomIn ? 1 : -1);
 			}
 			return 1;
@@ -358,7 +359,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 					else break;
 					while (ProgressiveResize && KeyPressed(KeyZoomIn));
 				}
-				else if (wParam == VK_END)
+				else if (wParam == KeyZoomReset)
 				{
 					ReNormalizeBuffers();
 				}
